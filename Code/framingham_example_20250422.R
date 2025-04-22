@@ -1,8 +1,8 @@
 library(ggplot2)
 library(dplyr)
 
-dat_raw <- read.csv("STAT7630_S2024/STAT7630_S2024-main/Data/framingham.csv")
-head(dat)
+dat_raw <- read.csv("framingham.csv")
+head(dat_raw)
 
 # Objectives:
 #   1a. Is there a significant association between current smoking status and 
@@ -15,8 +15,12 @@ head(dat)
 #         is there a significant interaction?
 
 # EDA
-## Univariate
+## Missing Data
+sum(is.na(dat_raw))
+lapply(dat_raw, function (x) sum(is.na(x)))
+dat <- na.omit(dat_raw)
 
+## Univariate
 ggplot(dat) + 
   geom_histogram(aes(x = age))
 
@@ -26,13 +30,47 @@ ggplot(dat) +
 ggplot(dat) + 
   geom_histogram(aes(x = BMI))
 
-sum(is.na(dat))
-lapply(dat, function (x) sum(is.na(x)))
-
-dat <- na.omit(dat)
-
 ## Bivariate
 
 ggplot(dat) + 
   geom_boxplot(aes(color = currentSmoker, y = BMI, group = currentSmoker))
 
+table(dat$currentSmoker, dat$TenYearCHD)
+
+#### Modeling
+
+# 1a. CHD ~ SMOKE
+
+t.test(dat$currentSmoker, dat$TenYearCHD)
+
+# 1b. CHD ~ Cigs/Day
+
+fit <- lm(TenYearCHD ~ cigsPerDay, data = dat)
+summary(fit)
+
+fit <- lm(TenYearCHD ~ cigsPerDay + age + BMI + male, data = dat)
+summary(fit)
+
+plot(fit)
+
+# 2. CHD ~ BMI
+
+fit <- lm(TenYearCHD ~ BMI, data = dat)
+summary(fit)
+
+fit <- lm(TenYearCHD ~ BMI + age + male, data = dat)
+summary(fit)
+
+# 2b. CHD ~ BMI + BMI * SMOKE
+
+fit <- lm(TenYearCHD ~ BMI + BMI:currentSmoker, data = dat)
+summary(fit)
+
+fit <- lm(TenYearCHD ~ BMI + BMI:currentSmoker + 
+            age + male, data = dat)
+summary(fit)
+
+#
+
+fit <- glm(TenYearCHD ~ cigsPerDay, family = "binomial", data = dat)
+summary(fit)
